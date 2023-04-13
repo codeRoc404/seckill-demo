@@ -1,8 +1,11 @@
 package com.zzp.seckilldemo.service.impl;
 
+import cn.hutool.core.lang.UUID;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zzp.seckilldemo.common.CommonConstant;
 import com.zzp.seckilldemo.common.Result;
+import com.zzp.seckilldemo.common.utils.MD5Util;
 import com.zzp.seckilldemo.entity.*;
 import com.zzp.seckilldemo.mapper.GoodsMapper;
 import com.zzp.seckilldemo.mapper.OrderMapper;
@@ -15,6 +18,7 @@ import com.zzp.seckilldemo.service.SeckillGoodsService;
 import com.zzp.seckilldemo.service.SeckillOrderService;
 import com.zzp.seckilldemo.vo.GoodsVo;
 import lombok.Synchronized;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -42,7 +46,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private OrderMapper orderMapper;
     @Autowired
     private SeckillOrderMapper seckillOrderMapper;
-
+    @Autowired
+    private SeckillGoodsMapper seckillGoodsMapper;
     @Autowired
     private RedisTemplate redisTemplate;
 
@@ -51,12 +56,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
      *
      * @param userId        用户id
      * @param goodsId       商品id
-     * @param seckillGoods  秒杀商品信息
      * @param purchaseCount 抢购数量
      */
     @Override
     @Transactional
-    public Result<Object> creatOrder(Long userId, Long goodsId, SeckillGoods seckillGoods, Integer purchaseCount) {
+    public Result<Object> creatOrder(Long userId, Long goodsId, Integer purchaseCount) {
 
         Goods goods;
         if (redisTemplate.opsForValue().get("goods:" + goodsId) != null) {
@@ -69,6 +73,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (goods == null) {
             return Result.error(CommonConstant.SEC_KILL_601, "订单创建失败");
         }
+
+        SeckillGoods seckillGoods = seckillGoodsMapper.selectOne(new QueryWrapper<SeckillGoods>().eq("goods_id", goodsId));
 
         //生成订单
         Order order = new Order();
@@ -93,6 +99,37 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 //        Goods goodsTotal = goodsMapper.selectById(goods.getId());
 //        goodsTotal.setGoodsStock(goodsTotal.getGoodsStock() - purchaseCount);
 //        goodsMapper.updateById(goodsTotal);
-        return Result.ok("创建成功");
+        return Result.ok("抢购成功");
+    }
+
+    /**
+     * 秒杀接口隐藏
+     * 生成秒杀地址
+     *
+     * @param userId
+     * @param goodsId
+     * @return
+     */
+    @Override
+    public String createPath(Long userId, Long goodsId) {
+        String path = MD5Util.md5(UUID.randomUUID().toString(true) + "-");
+        redisTemplate.opsForValue().set("seckill:path:" + userId + goodsId, path, 60, TimeUnit.SECONDS);
+        return path;
+    }
+
+    /**
+     * 秒杀接口隐藏
+     * 检查生成的秒杀接口路径
+     *
+     * @param userId
+     * @param goodsId
+     * @return
+     */
+    @Override
+    public boolean checkPath(Long userId, Long goodsId, String path) {
+        String oPath = (String) redisTemplate.opsForValue().get("seckill:path:" + userId + goodsId);
+        if (StringUtils.isEmpty(oPath))
+            return false;
+        return oPath.equals(path);
     }
 }

@@ -18,6 +18,16 @@ import com.zzp.seckilldemo.vo.GoodsVo;
  */
 public interface OrderService extends IService<Order> {
 
-    Result creatOrder(Long userId, Long goodsId, SeckillGoods seckillGoods, Integer purchaseCount);
+    Result creatOrder(Long userId, Long goodsId, Integer purchaseCount);
+
+    /*
+    生成秒杀地址
+     */
+    String createPath(Long userId, Long goodsId);
+
+    /*
+    检查path路径
+     */
+    boolean checkPath(Long userId, Long goodsId, String path);
 
 }
