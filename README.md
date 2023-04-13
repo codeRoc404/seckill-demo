@@ -1,9 +1,0 @@
-微型秒杀系统
-技术选型：SpringBoot+MybatisPlus+MySQL+Redis+RabbitMQ+Shiro+Jwt+Vue
-基于JWT实现跨域身份验证。
-基于Shiro实现身份认证与权限认证，采用RBAC模型实现系统权限控制。
-基于Redis+Lua脚本实现分布式锁，限制来自同一处多次秒杀请求，使用乐观锁解决超卖问题，将商
-品信息与秒杀库存数量预热至Redis中，缓解MySQL压力。
-隐藏秒杀接口，将API路径结合UUID，缓存至Redis中，预防秒杀开始前接口暴露，实现接口保护。
-基于Redis的List数据结构实现令牌桶算法，实现接口限流。
-整合RabbitMQ实现异步订单处理。
